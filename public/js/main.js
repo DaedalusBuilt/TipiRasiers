@@ -142,7 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-
+  document.querySelectorAll('.bio-toggle').forEach(btn => {
+  btn.onclick = () => {
+    const card = btn.closest('.team-card');
+    card.classList.toggle('expanded');
+    btn.textContent = card.classList.contains('expanded')
+      ? 'Read less'
+      : 'Read more';
+    };
+  });
   /* ── Admin: Confirm destructive actions ────────────────── */
   // Already handled inline via onsubmit in EJS, but also wire up dynamically:
   document.querySelectorAll('[data-confirm]').forEach(el => {
