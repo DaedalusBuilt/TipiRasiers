@@ -127,7 +127,6 @@ router.post('/posts/:id', requireAdmin, upload.single('imageFile'), (req, res) =
   req.flash('success', 'Post updated.');
   syncDatabase(`post: update "${title}"`); // push DB to GitHub in background
   res.redirect('/admin');
-  console.log("[DB] Updating post:", id);
 });
 
 // ── Delete Post ──────────────────────────────────────────
