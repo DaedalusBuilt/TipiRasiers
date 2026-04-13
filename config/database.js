@@ -15,7 +15,8 @@ const fs       = require('fs');
 
 const DB_DIR  = path.join(__dirname, '..', 'data');
 const DB_PATH = process.env.DB_PATH || path.join(DB_DIR, 'tipirasers.db');
-
+console.log("DB PATH:", DB_PATH);
+console.log("SQLite ready:", DB_PATH);
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 const db = new Database(DB_PATH);
