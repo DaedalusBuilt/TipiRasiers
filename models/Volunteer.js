@@ -1,54 +1,58 @@
 /**
- * Volunteer.js — Volunteer/Involvement sign-up model
- * 
- * TODO: Integrate with email marketing platform 
- *       (Mailchimp, ConvertKit, etc.) to manage contacts.
- * TODO: Send confirmation email on sign-up.
+ * models/Volunteer.js — Volunteer model using SQLite
  */
 
 const { v4: uuidv4 } = require('uuid');
-const { readJSON, writeJSON } = require('../config/database');
+const db             = require('../config/database');
 
-const FILE = 'volunteers.json';
+function rowToVolunteer(row) {
+  if (!row) return null;
+  return {
+    id:             row.id,
+    name:           row.name,
+    email:          row.email,
+    phone:          row.phone,
+    interests:      JSON.parse(row.interests || '[]'),
+    skills:         row.skills,
+    message:        row.message,
+    availableHours: row.available_hours,
+    status:         row.status,
+    createdAt:      row.created_at,
+  };
+}
 
 const Volunteer = {
   findAll() {
-    return readJSON(FILE).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return db.prepare('SELECT * FROM volunteers ORDER BY created_at DESC').all().map(rowToVolunteer);
+  },
+
+  findById(id) {
+    return rowToVolunteer(db.prepare('SELECT * FROM volunteers WHERE id = ?').get(id));
   },
 
   findByInterest(interest) {
-    return readJSON(FILE).filter(v => v.interests.includes(interest));
+    return this.findAll().filter(v => v.interests.includes(interest));
   },
 
-  create({ name, email, phone, interests, skills, message, availableHours }) {
-    const volunteers = readJSON(FILE);
-    const duplicate = volunteers.find(v => v.email === email);
-    if (duplicate) return { error: 'Email already registered' };
+  create({ name, email, phone = '', interests = [], skills = '', message = '', availableHours = '' }) {
+    // Check for duplicate email
+    const existing = db.prepare('SELECT id FROM volunteers WHERE email = ?').get(email);
+    if (existing) return { error: 'Email already registered.' };
 
-    const volunteer = {
-      id: uuidv4(),
-      name,
-      email,
-      phone: phone || '',
-      interests: interests || [],
-      skills: skills || '',
-      message: message || '',
-      availableHours: availableHours || '',
-      status: 'pending', // TODO: Admin reviews and approves volunteers
-      createdAt: new Date().toISOString(),
-    };
-    volunteers.push(volunteer);
-    writeJSON(FILE, volunteers);
-    return volunteer;
+    const id  = uuidv4();
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO volunteers (id, name, email, phone, interests, skills, message, available_hours, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    `).run(id, name, email, phone, JSON.stringify(interests), skills, message, availableHours, now);
+
+    return this.findById(id);
   },
 
   updateStatus(id, status) {
-    const volunteers = readJSON(FILE);
-    const index = volunteers.findIndex(v => v.id === id);
-    if (index === -1) return null;
-    volunteers[index].status = status;
-    writeJSON(FILE, volunteers);
-    return volunteers[index];
+    db.prepare('UPDATE volunteers SET status = ? WHERE id = ?').run(status, id);
+    return this.findById(id);
   },
 };
 
