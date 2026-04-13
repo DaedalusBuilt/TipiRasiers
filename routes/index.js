@@ -23,13 +23,7 @@ router.get('/', (req, res) => {
 router.get('/about', (req, res) => {
   res.render('about', { title: 'About Us', flash: req.flash() });
 });
-document.querySelectorAll('.bio-toggle').forEach(btn => {
-  btn.onclick = () => {
-    const card = btn.closest('.team-card');
-    card.classList.toggle('expanded');
-    btn.textContent = card.classList.contains('expanded') ? 'Read less' : 'Read more';
-  };
-});
+
 
 // ── Progress Tracker ─────────────────────────────────────
 router.get('/progress', (req, res) => {
