@@ -17,6 +17,7 @@ const Post     = require('../models/Post');
 const Donation = require('../models/Donation');
 const Volunteer = require('../models/Volunteer');
 const { requireAdmin, redirectIfAdmin } = require('../middleware/auth');
+const { syncDatabase } = require('../services/githubSync');
 
 // ── Multer file upload config ────────────────────────────
 const uploadDir = path.join(__dirname, '..', 'public', 'images', 'uploads');
@@ -102,6 +103,7 @@ router.post('/posts', requireAdmin, upload.single('imageFile'), (req, res) => {
 
   Post.create({ title, content, excerpt, category, author: req.session.adminUser, imageUrl: finalImageUrl, status });
   req.flash('success', `Post "${title}" created successfully.`);
+  syncDatabase(`post: create "${title}"`); // push DB to GitHub in background
   res.redirect('/admin');
 });
 
@@ -121,6 +123,7 @@ router.post('/posts/:id', requireAdmin, upload.single('imageFile'), (req, res) =
 
   Post.update(req.params.id, { title, content, excerpt, category, imageUrl: finalImageUrl, status });
   req.flash('success', 'Post updated.');
+  syncDatabase(`post: update "${title}"`); // push DB to GitHub in background
   res.redirect('/admin');
 });
 
@@ -128,6 +131,7 @@ router.post('/posts/:id', requireAdmin, upload.single('imageFile'), (req, res) =
 router.post('/posts/:id/delete', requireAdmin, (req, res) => {
   Post.delete(req.params.id);
   req.flash('success', 'Post deleted.');
+  syncDatabase('post: delete'); // push DB to GitHub in background
   res.redirect('/admin');
 });
 

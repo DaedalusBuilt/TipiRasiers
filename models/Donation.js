@@ -1,54 +1,55 @@
 /**
- * Donation.js — Donation record model (JSON-based)
- * 
- * TODO: Replace with a real DB model once you integrate
- *       a payment processor (Stripe / PayPal).
- * TODO: Add proper PCI compliance handling — never store
- *       raw card data. Only store metadata & transaction IDs.
+ * models/Donation.js — Donation model using SQLite
  */
 
 const { v4: uuidv4 } = require('uuid');
-const { readJSON, writeJSON } = require('../config/database');
+const db             = require('../config/database');
 
-const FILE = 'donations.json';
+function rowToDonation(row) {
+  if (!row) return null;
+  return {
+    id:            row.id,
+    donorName:     row.donor_name,
+    donorEmail:    row.donor_email,
+    amount:        row.amount,
+    message:       row.message,
+    paymentMethod: row.payment_method,
+    transactionId: row.transaction_id,
+    status:        row.status,
+    createdAt:     row.created_at,
+  };
+}
 
 const Donation = {
   findAll() {
-    return readJSON(FILE).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return db.prepare('SELECT * FROM donations ORDER BY created_at DESC').all().map(rowToDonation);
+  },
+
+  findById(id) {
+    return rowToDonation(db.prepare('SELECT * FROM donations WHERE id = ?').get(id));
   },
 
   getTotalRaised() {
-    return readJSON(FILE)
-      .filter(d => d.status === 'completed')
-      .reduce((sum, d) => sum + d.amount, 0);
+    const row = db.prepare("SELECT SUM(amount) as total FROM donations WHERE status = 'completed'").get();
+    return row.total || 0;
   },
 
-  create({ donorName, donorEmail, amount, message, paymentMethod, transactionId }) {
-    const donations = readJSON(FILE);
-    const donation = {
-      id: uuidv4(),
-      donorName,
-      donorEmail,
-      amount: parseFloat(amount),
-      message: message || '',
-      paymentMethod: paymentMethod || 'pending',
-      transactionId: transactionId || null, // TODO: Fill from Stripe/PayPal response
-      status: 'pending', // TODO: Update to 'completed' on payment confirmation webhook
-      createdAt: new Date().toISOString(),
-    };
-    donations.push(donation);
-    writeJSON(FILE, donations);
-    return donation;
+  create({ donorName, donorEmail, amount, message = '', paymentMethod = 'pending', transactionId = null }) {
+    const id  = uuidv4();
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO donations (id, donor_name, donor_email, amount, message, payment_method, transaction_id, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+    `).run(id, donorName, donorEmail, parseFloat(amount), message, paymentMethod, transactionId, now);
+
+    return this.findById(id);
   },
 
   updateStatus(id, status, transactionId = null) {
-    const donations = readJSON(FILE);
-    const index = donations.findIndex(d => d.id === id);
-    if (index === -1) return null;
-    donations[index].status = status;
-    if (transactionId) donations[index].transactionId = transactionId;
-    writeJSON(FILE, donations);
-    return donations[index];
+    db.prepare('UPDATE donations SET status = ?, transaction_id = COALESCE(?, transaction_id) WHERE id = ?')
+      .run(status, transactionId, id);
+    return this.findById(id);
   },
 };
 
