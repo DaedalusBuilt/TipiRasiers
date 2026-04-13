@@ -71,7 +71,7 @@ router.post('/posts', requireAdmin, (req, res) => {
     req.flash('error', 'Title and content are required.');
     return res.redirect('/admin/posts/new');
   }
-  Post.create({ title, content, excerpt, category, author: req.session.adminUser, imageUrl, status });
+  Post.create({ title, content, excerpt, category, author: "Tipi Raisers Team", imageUrl, status });
   req.flash('success', `Post "${title}" created successfully.`);
   res.redirect('/admin');
 });
