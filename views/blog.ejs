@@ -10,13 +10,28 @@
   </div>
 
   <div class="container blog-layout">
-    <!-- Category Filter -->
-    <div class="category-filter">
-      <a href="/blog" class="cat-tag <%= !currentCategory ? 'cat-tag-active' : '' %>">All</a>
-      <% categories.forEach(cat => { %>
-        <a href="/blog?category=<%= encodeURIComponent(cat) %>"
-           class="cat-tag <%= currentCategory === cat ? 'cat-tag-active' : '' %>"><%= cat %></a>
-      <% }) %>
+
+    <!-- Filters + Sort bar -->
+    <div class="blog-toolbar">
+      <!-- Category filters -->
+      <div class="category-filter">
+        <a href="/blog?<%= buildQuery({ category: null, page: null }) %>"
+           class="cat-tag <%= !currentCategory ? 'cat-tag-active' : '' %>">All</a>
+        <% categories.forEach(cat => { %>
+          <a href="/blog?<%= buildQuery({ category: cat, page: null }) %>"
+             class="cat-tag <%= currentCategory === cat ? 'cat-tag-active' : '' %>"><%= cat %></a>
+        <% }) %>
+      </div>
+
+      <!-- Sort dropdown -->
+      <div class="sort-wrap">
+        <label for="sortSelect" class="sort-label">Sort:</label>
+        <select id="sortSelect" class="sort-select" onchange="applySort(this.value)">
+          <% Object.entries(sortOptions).forEach(([key, opt]) => { %>
+            <option value="<%= key %>" <%= currentSort === key ? 'selected' : '' %>><%= opt.label %></option>
+          <% }) %>
+        </select>
+      </div>
     </div>
 
     <!-- Posts Grid -->
@@ -54,19 +69,28 @@
       <% if (totalPages > 1) { %>
         <nav class="pagination">
           <% if (currentPage > 1) { %>
-            <a href="/blog?page=<%= currentPage - 1 %><%= currentCategory ? '&category=' + encodeURIComponent(currentCategory) : '' %>" class="page-btn">← Prev</a>
+            <a href="/blog?<%= buildQuery({ page: currentPage - 1 }) %>" class="page-btn">← Prev</a>
           <% } %>
           <% for (let i = 1; i <= totalPages; i++) { %>
-            <a href="/blog?page=<%= i %><%= currentCategory ? '&category=' + encodeURIComponent(currentCategory) : '' %>"
+            <a href="/blog?<%= buildQuery({ page: i }) %>"
                class="page-btn <%= i === currentPage ? 'page-btn-active' : '' %>"><%= i %></a>
           <% } %>
           <% if (currentPage < totalPages) { %>
-            <a href="/blog?page=<%= currentPage + 1 %><%= currentCategory ? '&category=' + encodeURIComponent(currentCategory) : '' %>" class="page-btn">Next →</a>
+            <a href="/blog?<%= buildQuery({ page: currentPage + 1 }) %>" class="page-btn">Next →</a>
           <% } %>
         </nav>
       <% } %>
     <% } %>
   </div>
 </main>
+
+<script>
+function applySort(value) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('sort', value);
+  url.searchParams.delete('page'); // reset to page 1 on sort change
+  window.location.href = url.toString();
+}
+</script>
 
 <%- include('partials/footer') %>
