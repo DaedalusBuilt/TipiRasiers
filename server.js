@@ -1,9 +1,11 @@
 require('dotenv').config({ override: true });
 const express      = require('express');
 const session      = require('express-session');
+const pgSession    = require('connect-pg-simple')(session);
 const flash        = require('connect-flash');
 const methodOverride = require('method-override');
 const path         = require('path');
+const { Pool }     = require('pg');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -18,14 +20,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride('_method'));
 
+// Persistent session store in PostgreSQL — survives server restarts
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
 app.use(session({
+  store: new pgSession({
+    pool: sessionPool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  }),
   secret:            process.env.SESSION_SECRET || 'tipi-raisers-secret-change-me',
-  resave:            true,
+  resave:            false,
   saveUninitialized: false,
   cookie: {
     secure:   isProd,   // true on Render (HTTPS), false locally (HTTP)
     httpOnly: true,
-    maxAge:   1000 * 60 * 60 * 24, // 24 hours
+    maxAge:   1000 * 60 * 60 * 24 * 7, // 7 days
   },
 }));
 app.use(flash());

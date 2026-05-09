@@ -3,7 +3,7 @@ const router   = express.Router();
 const { marked } = require('marked');
 const Post     = require('../models/Post');
 
-const CATEGORIES = ['Progress Update','Community Stories','How to Help','News & Events','Construction Updates','Volunteer Spotlight','Housing Needs Assesment and Policy Research'];
+const CATEGORIES = ['Progress Update','Community Stories','How to Help','News & Events','Construction Updates','Volunteer Spotlight','Housing Needs Assessment and Policy Research'];
 const PER_PAGE   = 6;
 
 const SORT_OPTIONS = {

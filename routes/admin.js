@@ -21,11 +21,16 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
 }
 
 // ── Multer: memory for Supabase, disk for local ──────────
-const ALLOWED = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+const ALLOWED = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.avif'];
 const fileFilter = (req, file, cb) => {
-  ALLOWED.includes(path.extname(file.originalname).toLowerCase())
-    ? cb(null, true)
-    : cb(new Error('Only image files are allowed (jpg, png, gif, webp).'));
+  const ext = path.extname(file.originalname).toLowerCase();
+  // Also accept by mimetype in case extension is missing
+  const okMime = file.mimetype.startsWith('image/');
+  if (ALLOWED.includes(ext) || okMime) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed (jpg, png, gif, webp, heic).'));
+  }
 };
 
 let upload;
