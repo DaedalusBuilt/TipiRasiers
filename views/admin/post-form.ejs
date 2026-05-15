@@ -81,6 +81,11 @@
           <!-- Photos -->
           <div class="sidebar-card">
             <h3>Photos</h3>
+            <% if (storageMode === 'local') { %>
+              <p style="color:#c0392b;font-size:0.85rem;font-weight:600;margin-bottom:8px;">
+                ⚠️ Supabase not connected — photos will be lost on next server restart!
+              </p>
+            <% } %>
             <p class="form-hint">First photo becomes the featured image. Drag to reorder.</p>
 
             <!-- Existing images grid -->

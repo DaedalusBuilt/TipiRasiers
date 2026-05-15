@@ -11,13 +11,21 @@ const { requireAdmin, redirectIfAdmin } = require('../middleware/auth');
 
 // ── Supabase Storage setup ───────────────────────────────
 let supabase = null;
+let supabaseError = null;
+
 if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
   supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  // Create bucket if it doesn't exist yet (safe to call every startup)
-  supabase.storage.createBucket('tipi-raisers', { public: true }).catch(() => {});
+  supabase.storage.createBucket('tipi-raisers', { public: true })
+    .then(({ error }) => {
+      if (error && !error.message.includes('already exists')) {
+        console.error('[Storage] Bucket warning:', error.message);
+      }
+    });
   console.log('[Storage] Supabase Storage ready');
 } else {
-  console.log('[Storage] No Supabase keys — using local disk fallback');
+  const missing = [!process.env.SUPABASE_URL && 'SUPABASE_URL', !process.env.SUPABASE_SERVICE_KEY && 'SUPABASE_SERVICE_KEY'].filter(Boolean);
+  supabaseError = `Missing env vars: ${missing.join(', ')}`;
+  console.error('[Storage] ⚠️  ' + supabaseError + ' — uploads will use local disk and WILL BE LOST on Render restarts!');
 }
 
 // ── Multer: memory for Supabase, disk for local ──────────
@@ -102,19 +110,25 @@ router.get('/', requireAdmin, async (req, res) => {
       title: 'Admin Dashboard', posts,
       donations:  allDonations.slice(0, 10),
       volunteers: allVolunteers.slice(0, 10),
-      totalRaised, flash: req.flash(),
+      totalRaised,
+      storageMode: supabase ? 'supabase' : 'local',
+      supabaseError,
+      flash: req.flash(),
     });
   } catch (e) {
     console.error('Dashboard error:', e);
     res.render('admin/dashboard', {
-      title: 'Admin Dashboard', posts: [], donations: [], volunteers: [], totalRaised: 0, flash: req.flash(),
+      title: 'Admin Dashboard', posts: [], donations: [], volunteers: [], totalRaised: 0,
+      storageMode: supabase ? 'supabase' : 'local',
+      supabaseError,
+      flash: req.flash(),
     });
   }
 });
 
 // ── New Post ─────────────────────────────────────────────
 router.get('/posts/new', requireAdmin, (req, res) => {
-  res.render('admin/post-form', { title: 'New Post', post: null, flash: req.flash() });
+  res.render('admin/post-form', { title: 'New Post', post: null, storageMode: supabase ? 'supabase' : 'local', flash: req.flash() });
 });
 
 router.post('/posts', requireAdmin, upload.array('imageFiles', 20), async (req, res) => {
@@ -140,7 +154,7 @@ router.get('/posts/:id/edit', requireAdmin, async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) { req.flash('error', 'Post not found.'); return res.redirect('/admin'); }
-    res.render('admin/post-form', { title: 'Edit Post', post, flash: req.flash() });
+    res.render('admin/post-form', { title: 'Edit Post', post, storageMode: supabase ? 'supabase' : 'local', flash: req.flash() });
   } catch (e) {
     req.flash('error', 'Could not load post.');
     res.redirect('/admin');

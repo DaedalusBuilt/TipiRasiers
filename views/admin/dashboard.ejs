@@ -22,6 +22,16 @@
       <div class="flash flash-error"><%= flash.error[0] %></div>
     <% } %>
 
+    <% if (storageMode === 'local') { %>
+      <div class="flash flash-error" style="font-size:0.95rem;">
+        ⚠️ <strong>Photo uploads are broken.</strong> Supabase storage is not connected (<%= supabaseError %>).
+        Photos will save to local disk and vanish on every Render restart.
+        Fix this in Render → Environment: make sure <code>SUPABASE_URL</code> and <code>SUPABASE_SERVICE_KEY</code> are set correctly, then redeploy.
+      </div>
+    <% } else { %>
+      <div class="flash flash-success" style="font-size:0.9rem;">✅ Supabase storage active — photo uploads are working.</div>
+    <% } %>
+
     <h1 class="admin-title">Dashboard</h1>
 
     <!-- Admin Stats -->
